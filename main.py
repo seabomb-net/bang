@@ -587,6 +587,7 @@ class Read: # file-reading functions
     @staticmethod
     def view() -> str: # lists sets
         folders = [folder.name for folder in SETS_DIR.iterdir()]
+        folders = sorted(folders)
         if not SETS_DIR.exists():
             Read.zero()
             return
