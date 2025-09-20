@@ -27,6 +27,10 @@ class Disk: # config functions
             }
             with open(INI_FILE, 'w') as file:
                 config.write(file)
+
+        if not os.path.exists(SETS_DIR):
+            directory = ROOT_DIR / SETS_DIR
+            directory.mkdir(parents=True, exist_ok=True)
                 
     @staticmethod
     def load() -> None: # load config
@@ -254,7 +258,7 @@ class Write: # file-writing functions
             return False
 
     @staticmethod
-    def delete(file: str) -> None:
+    def delete(file: str) -> None: # deletes a file
         try:
             os.remove(file)
         except FileNotFoundError:
