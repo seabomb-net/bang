@@ -71,9 +71,9 @@ class Disk: # config functions
                 dst = SETS_DIR / f"{folder} (Copy {i})"
             shutil.copytree(src=src, dst=dst)
         except (FileNotFoundError, FileExistsError) as e:
-            print(f'Error: {e}')
+            print(f"An unexpected error occurred: {e}")
         except Exception as e:
-            print(f'Unexpected error: {type(e).__name__} - {e}')
+            print(f"An unexpected error occurred: {e}")
         
 class Write: # file-writing functions
     @staticmethod
@@ -254,7 +254,7 @@ class Write: # file-writing functions
             if rs: input('Reset complete. Enter any key to continue... ')
             return True
         except Exception as e:
-            if user: print(f"Error deleting {folder}. (Debug: {e})")
+            if user: print(f"An unexpected error occurred: {e}")
             return False
 
     @staticmethod
@@ -566,7 +566,7 @@ class Read: # file-reading functions
                 else:
                     print('Invalid selection, try again...')
                     continue
-        except Exception as e: print(f"{e} (parse)")
+        except Exception as e: print(f"An unexpected error occurred: {e}")
         return pairs, folder
 
     @staticmethod
