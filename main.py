@@ -14,9 +14,6 @@ ROOT_DIR = Path('.').resolve() # working dir
 ZERO_DIR = ROOT_DIR.parent # parent of working dir
 SETS_DIR = Path('Sets').resolve() # study sets dir
 INI_FILE = 'config.ini' # config file
-QUICK_EXIT = False # set to True for quicker debugging (Unused)
-
-# note to self: remove flashcards.txt after edit
 
 class Disk: # config functions
     @staticmethod
