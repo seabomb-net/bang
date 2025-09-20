@@ -1,6 +1,4 @@
-# TO DO: Allow the user to single out flashcard evaluations by number (1-5)
-# Write documentation (When finally complete)
-
+# to do: documentation
 from ast import literal_eval as evaluate        # safe eval()
 from configparser import ConfigParser as cfg    # config.ini
 from datetime import datetime                   # file management
