@@ -11,7 +11,6 @@ from time import sleep as wait                  # exit
 from time import time                           # timer
 
 ROOT_DIR = Path('.').resolve() # working dir
-ZERO_DIR = ROOT_DIR.parent # parent of working dir
 SETS_DIR = Path('Sets').resolve() # study sets dir
 INI_FILE = 'config.ini' # config file
 
@@ -35,7 +34,6 @@ class Disk: # config functions
         try:
             config.read(INI_FILE)
         except Exception as e:
-            #print(f'{e}')
             Disk.boot(error=True)
         finally:
             Options.reverse = config.getboolean('Options', 'reverse', fallback=False)
@@ -584,7 +582,6 @@ class Read: # file-reading functions
     
     @staticmethod
     def view() -> str: # lists sets
-        # TO DO: ADD AN OPERATOR WHERE IF SELECTION STARTS WITH * IT DUPLICATES THE FOLDER
         folders = [folder.name for folder in SETS_DIR.iterdir()]
         if not SETS_DIR.exists():
             Read.zero()
@@ -693,7 +690,6 @@ class Options: # settings, no __init__(self)
                 print()
                 print(f'Enter text in parentheses to modify: \n'
                       f"Reverse Pair Order = {'ON ' if Options.reverse else 'OFF'}       (--v)\n"
-                       ####
                       f"Quiz Settings...               (--q)\n"
                       f"Restore Defaults...            (--r)\n"
                       f"Hard Reset...                  (--h)")
