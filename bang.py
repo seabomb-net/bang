@@ -14,9 +14,11 @@ ROOT_DIR = Path('.').resolve() # working dir
 SETS_DIR = Path('Sets').resolve() # study sets dir
 INI_FILE = 'config.ini' # config file
 
-class Disk: # config functions
+class Disk:
+    """Disk functions."""
     @staticmethod
-    def boot(error=False) -> None: # initial config
+    def boot(error=False) -> None:
+        """Initialize INI_FILE and SETS_DIR if they do not exist."""
         if not os.path.exists(INI_FILE) or error:
             config = cfg()
             config['Options'] = {
@@ -33,11 +35,12 @@ class Disk: # config functions
             directory.mkdir(parents=True, exist_ok=True)
                 
     @staticmethod
-    def load() -> None: # load config
+    def load() -> None:
+        """Load configuration from INI_FILE."""
         config = cfg()
         try:
             config.read(INI_FILE)
-        except Exception as e:
+        except:
             Disk.boot(error=True)
         finally:
             Options.reverse = config.getboolean('Options', 'reverse', fallback=False)
@@ -48,6 +51,7 @@ class Disk: # config functions
 
     @staticmethod
     def save() -> None: # save config
+        """Save configuration to INI_FILE."""
         config = cfg()
         config['Options'] = {
             'reverse': str(Options.reverse),
@@ -60,10 +64,10 @@ class Disk: # config functions
 
     @staticmethod
     def duplicate(folder: str) -> None:
+        """Duplicate a folder in SETS_DIR."""
         try:
             src = SETS_DIR / folder
             stem = f"{folder} (Copy)"
-            #dst = SETS_DIR / f"{folder} (Copy)"
             dst = SETS_DIR / stem
             i = 1
             while dst.exists():
@@ -77,7 +81,8 @@ class Disk: # config functions
         
 class Write: # file-writing functions
     @staticmethod
-    def set_create(title: str) -> str: # initializes study file, creates a folder
+    def set_create(title: str) -> str:
+        """Initialize directory and text file; called only by Write.create()."""
         directory = SETS_DIR / title
         directory.mkdir(parents=True, exist_ok=True)
         txt = directory / f"{title}.txt"
@@ -87,6 +92,7 @@ class Write: # file-writing functions
 
     @staticmethod
     def score(scores: dict, folder: str) -> None: # initializes, saves and *overwrites* score dict as text
+        """Initialize, save, and overwrite scores for flashcards."""
         directory = SETS_DIR / folder
         directory.mkdir(parents=True, exist_ok=True)
         txt = directory / "flashcards.txt"
@@ -96,6 +102,7 @@ class Write: # file-writing functions
             
     @staticmethod
     def saveq(results: str, folder: str) -> None: # saves quiz results, creates a subfolder
+        """Save quiz results and creates a new directory."""
         directory = SETS_DIR / folder / Path("Results")
         directory.mkdir(parents=True, exist_ok=True)
         qtime = datetime.now().strftime('%Y-%m-%d %H_%M_%S')
@@ -104,9 +111,10 @@ class Write: # file-writing functions
             file.write(f"[{folder}]\n")
             file.write(f'{results}')
         return txt
-    
+
     @staticmethod
-    def create(pairs=None, new=True, extract=False, folder=None) -> None: # stores pairs as tuples as text
+    def create(pairs:list=None, new=True, extract=False, folder=None) -> None:
+        """Wizard to add terms and definitions to set; store pairs as tuples."""
         folders = [folder.name for folder in SETS_DIR.iterdir()]
         special = ['&', '"', '?', '<', '>', '#', '{', '}', '%', '~', '/', '.',
                    '\\', '*', ';', ':', "'", '|', '\t', '\n', '$', '!', '[', ']']
@@ -168,7 +176,7 @@ class Write: # file-writing functions
                     return
                 elif not terms and definition.lower() == 'x':
                     print('Returning... ')
-                    Write.dir_delete(title, user=False, rs=False)
+                    Write.dir_delete(title, user=False, reset=False)
                     del terms
                     return
                 elif term == 's' or term == 'self':
@@ -186,6 +194,7 @@ class Write: # file-writing functions
 
     @staticmethod
     def extract(txt, title) -> list:
+        """Separate user input into a list; only for use with importing."""
         while True:
             inner: str = input('Enter a character to separate between term and definition, or leave blank to use double percent (%%): ').strip()
             if not inner:
@@ -215,6 +224,7 @@ class Write: # file-writing functions
     
     @staticmethod
     def strip(pairs: list, txt: str | None, title: str) -> bool:
+        """Sanitize pairs from extract() into tuples; only for use with importing."""
         for idx, pair in enumerate(pairs, start=1):
             print(f"{idx}. {str(pair)[:75]}{'...' if len(str(pair)) > 75 else ''}")
         while True:
@@ -228,16 +238,17 @@ class Write: # file-writing functions
             elif selection == 'n' or selection == 'x':
                 del pairs
                 print()
-                #Write.dir_delete(title, user=False) original logic
+            #Write.dir_delete(title, user=False) original logic
                 return False
             else:
                 print('Invalid selection, try again...')
                 continue
         
     @staticmethod
-    def dir_delete(folder: str, user=True, rs=False) -> bool | None: # user and rs args are for UI
+    def dir_delete(folder: str, user=True, reset=False) -> bool | None: # user and reset args are for UI
+        """Delete a directory or clear everything."""
         if user:
-            message = f"Delete '{folder}'? (y/n): " if not rs else \
+            message = f"Delete '{folder}'? (y/n): " if not reset else \
                       f"Clear all data? This cannot be undone. (y/n): "
             while True:
                 selection = input(message).strip().lower()
@@ -251,14 +262,15 @@ class Write: # file-writing functions
         target = SETS_DIR / folder
         try:
             shutil.rmtree(target)
-            if rs: input('Reset complete. Enter any key to continue... ')
+            if reset: input('Reset complete. Enter any key to continue... ')
             return True
         except Exception as e:
             if user: print(f"An unexpected error occurred: {e}")
             return False
 
     @staticmethod
-    def delete(file: str) -> None: # deletes a file
+    def delete(file: str) -> None:
+        """Delete one individual file."""
         try:
             os.remove(file)
         except FileNotFoundError:
@@ -266,6 +278,7 @@ class Write: # file-writing functions
         
     @staticmethod
     def edit(pair: tuple, pairs: list, folder: str) -> list:
+        """Wizard to edit individual pairs within a set."""
         flashcards = SETS_DIR / folder / 'flashcards.txt'
         blank = False
         swap = False
@@ -330,6 +343,7 @@ class Write: # file-writing functions
 class Read: # file-reading functions
     @staticmethod
     def edit(pairs: list, folder: str) -> tuple | str | None:
+        """Select an individual pair within a set."""
         directory = SETS_DIR / folder
         flashcards = directory / "flashcards.txt"
         while True:
@@ -385,7 +399,8 @@ class Read: # file-reading functions
                         continue
             
     @staticmethod
-    def quiz(pairs: list, folder: str) -> None: # quiz function that works with tuples within a list
+    def quiz(pairs: list, folder: str) -> None:
+        """Display pairs from selected set in a quiz format."""
         if len(pairs) == 0:
             while True:
                 selection = input(f'{folder} was unreadable. Delete set? (y/n): ').strip().lower()
@@ -457,6 +472,7 @@ class Read: # file-reading functions
 
     @staticmethod
     def time_format(seconds) -> str:
+        """Format time into a readable string."""
         minutes = int((seconds % 3600) // 60)
         remainder = int(seconds % 60)
         hours = int(seconds // 3600)
@@ -469,6 +485,8 @@ class Read: # file-reading functions
 
     @staticmethod
     def flashcards(pairs: list, folder: str) -> None: # not a quiz, the user personally assesses themselves
+        """Display pairs from a selected set; assess user knowledge 1-5."""
+        """The user personally grades themselves."""
         if len(pairs) == 0:
             while True:
                 selection = input(f'{folder} was unreadable. Delete set? (y/n): ').strip().lower()
@@ -533,6 +551,7 @@ class Read: # file-reading functions
     
     @staticmethod
     def parse(folder: str) -> tuple[list, str]: # evaluates, shuffles pairs into a returned list (add shuffle bool?)
+        """Explain this one later."""
         pairs: list = []
         try:
             directory = SETS_DIR / folder
@@ -571,6 +590,7 @@ class Read: # file-reading functions
 
     @staticmethod
     def order(folder: str) -> list: # evaluates dict, returns the list by self-assessment *lowest first*
+        """Explain this one later."""
         pairs = []
         try:
             directory = SETS_DIR / folder
@@ -587,7 +607,6 @@ class Read: # file-reading functions
     @staticmethod
     def view() -> str: # lists sets
         folders = [folder.name for folder in SETS_DIR.iterdir()]
-        folders = sorted(folders)
         if not SETS_DIR.exists():
             Read.zero()
             return
@@ -595,6 +614,7 @@ class Read: # file-reading functions
             Read.zero()
             return
         while True:
+            folders = sorted(folders)
             if folders:
                 print("\nSelect a set #, 'c' to create a set, or -# to delete a set: ")
                 for idx, sets in enumerate(folders, start=1):
@@ -715,7 +735,7 @@ class Options: # settings, no __init__(self)
                     case '--h':
                         folders = [x for x in SETS_DIR.iterdir()]
                         if folders:
-                            Write.dir_delete('.', user=True, rs=True)
+                            Write.dir_delete('.', user=True, reset=True)
                         else:
                             print('No sets to clear.')
                             continue
@@ -729,7 +749,7 @@ class Options: # settings, no __init__(self)
                         print("Invalid selection, try again...")
                         continue
     @staticmethod
-    def readme():
+    def readme() -> None:
         with open("license.txt", "r") as file:
             print()
             print(file.read())
