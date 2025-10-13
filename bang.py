@@ -150,7 +150,7 @@ class Write: # file-writing functions
                 terms.append(term)
         while True:
             while True:
-                term = input("\nEnter a term, or enter 'x' to finish: ").strip()
+                term = input("\nEnter a term, or enter 'x] to finish: ").strip()
                 if terms and term.lower() == 'x' and new:
                     print(f"Set '{title}' successfully created!")
                     del terms
@@ -288,7 +288,7 @@ class Write: # file-writing functions
         terms = []
         for term, definition in pairs:
             terms.append(term)
-        print("Enter new item, 's' to swap pair, or press Enter to keep current...")
+        print("Enter new item, 's] to swap pair, or press Enter to keep current...")
         while True:
             new_term = input(f"Term: {pair[0]}: ").strip()
             if new_term.lower() == 'x':
@@ -368,25 +368,27 @@ class Read: # file-reading functions
         txt = directory / "pairs.txt"
         flashcards = directory / "flashcards.txt"
         if not pairs:
+            pair=None
+            control=False
             while True:
                 selection = input(f'No pairs found. Delete set? (y/n): ').strip().lower()
                 if selection == 'y':
                     del pairs
                     Write.dir_delete(folder, user=False)
                     print(f"Set '{folder}' was deleted.")
-                    return
+                    return pair, control
                 elif selection == 'n' or selection == 'x':
                     del pairs
                     print(f'The set is accessible inside the Sets/{folder}/ directory.')
-                    return
+                    return pair, control
                 else:
                     print('Invalid selection, try again...')
                     continue
-            return None
+            return pair, control
         
     
         pairs = sorted(pairs)
-        print(f"\nSelect pair #, *# to duplicate pair, or -# to delete pair, or 'c' to create pair: ")
+        print(f"\nSelect pair #, *# to duplicate pair, or -# to delete pair, or 'c] to create pair: ")
         print("#")
         for idx, pair in enumerate(pairs, start=1):
             print(f"{idx}. {str(pair)[:75]}{'...' if len(str(pair)) > 75 else ''}")
@@ -484,7 +486,7 @@ class Read: # file-reading functions
                         break
                     else:
                         print(f"✗ {pair[1] if Options.result else ''}")
-                        correction = input("Enter any key to continue, or enter 'y' to override... ").strip().lower()
+                        correction = input("Enter any key to continue, or enter 'y] to override... ").strip().lower()
                         if correction == 'y':
                             if Options.result: print('√')
                             questions_correct += 1
@@ -509,7 +511,7 @@ class Read: # file-reading functions
             if Options.saveq:
                 txt = Write.saveq(results, folder)
                 print(f'Results have been saved to the Sets/{folder}/ directory.')
-            selection = input("Enter any key to continue, or enter 'r' to retry... ").strip().lower()
+            selection = input("Enter any key to continue, or enter 'r] to retry... ").strip().lower()
             if selection == 'r':
                 if Options.shuffle: shuffle(pairs)
                 continue
@@ -589,7 +591,7 @@ class Read: # file-reading functions
             if all(value == 5 for value in nums):
                 print('Set Mastered!')
             print('Completed! Your personal assessment has been saved.')
-            selection = input("Enter any key to continue, or enter 'r' to retry... ").strip().lower()
+            selection = input("Enter any key to continue, or enter 'r] to retry... ").strip().lower()
             if selection == 'r':
                 pairs, folder = Read.order(folder) # evaluate the new order after file has been written
                 Read.flashcards(pairs, folder) # recursive with purpose
@@ -665,7 +667,7 @@ class Read: # file-reading functions
             #control=False
             folders = sorted(folders)
             if folders:
-                print("\nSelect set #, *# to duplicate set, -# to delete set, or 'c' to create set: ")
+                print("\nSelect set #, *# to duplicate set, -# to delete set, or 'c] to create set: ")
                 print("#")
                 for idx, sets in enumerate(folders, start=1):
                     print(f"{idx} * {sets}")
@@ -688,6 +690,8 @@ class Read: # file-reading functions
                             Disk.duplicate(folders[selection - 1])
                             folders = [folder.name for folder in SETS_DIR.iterdir()]
                             break
+                        else:
+                            print('Invalid selection, try again...')
                         
                     else:
                         try:
@@ -739,18 +743,18 @@ class Options:
             while True:
                 print()
                 print(f'Enter text in parentheses to modify: \n'
-                      f"Reverse Pair Order = {'ON ' if Options.reverse else 'OFF'}       (--v)\n"
-                      f"Quiz Settings...               (--q)\n"
-                      f"Restore Defaults...            (--r)\n"
-                      f"Hard Reset...                  (--h)")
+                      f"Reverse Pair Order = {'ON ' if Options.reverse else 'OFF'}       ([v)\n"
+                      f"Quiz Settings...               [q]\n"
+                      f"Restore Defaults...            [r]\n"
+                      f"Hard Reset...                  [h]")
                 selection = input().strip().lower()
                 match selection:
-                    case '--v':
+                    case 'v':
                         Options.reverse = not Options.reverse
                         Disk.save()
-                    case '--q':
+                    case 'q':
                         Options.quiz()
-                    case '--r':
+                    case 'r':
                         Options.reverse = False
                         Options.shuffle = True
                         Options.result = True
@@ -758,7 +762,7 @@ class Options:
                         Options.exact = False
                         Disk.save()
                         break
-                    case '--h':
+                    case 'h':
                         folders = [x for x in SETS_DIR.iterdir()]
                         if folders:
                             Write.dir_delete('.', user=True, reset=True)
@@ -782,25 +786,25 @@ class Options:
             while True:
                 print()
                 print(f'Enter text in parentheses to modify: \n'
-                      f"Save Results = {'ON ' if Options.saveq else 'OFF'}             (--s)\n"
-                      f"Show Results = {'ON ' if Options.result else 'OFF'}             (--q)\n"
-                      f"Shuffle Pairs = {'ON ' if Options.shuffle else 'OFF'}            (--f)\n"
-                      f"Exact Answers Only = {'ON ' if Options.exact else 'OFF'}       (--e)")
+                      f"Save Results = {'ON ' if Options.saveq else 'OFF'}             [s]\n"
+                      f"Show Results = {'ON ' if Options.result else 'OFF'}             [q]\n"
+                      f"Shuffle Pairs = {'ON ' if Options.shuffle else 'OFF'}            [f]\n"
+                      f"Exact Answers Only = {'ON ' if Options.exact else 'OFF'}        [e]")
                 selection = input().strip().lower()
                 match selection:
-                    case '--s':
+                    case 's':
                         Options.saveq = not Options.saveq
                         Disk.save()
                         break
-                    case '--q':
+                    case 'q':
                         Options.result = not Options.result
                         Disk.save()
                         break
-                    case '--f':
+                    case 'f':
                         Options.shuffle = not Options.shuffle
                         Disk.save()
                         break
-                    case '--e':
+                    case 'e':
                         Options.exact = not Options.exact
                         Disk.save()
                         break
@@ -832,21 +836,21 @@ def menu() -> None:
     while True:
         while True:
             print()
-            print(f"Enter '--c' to create a set\n"
-                  f"Enter '--e' to edit a set\n"
-                  f"Enter '--f' to view flashcards\n"
-                  f"Enter '--i' to import a set\n"
-                  f"Enter '--q' to start quiz\n"
-                  f"Enter '--o' to view options\n"
-                  f"Enter '--x' to exit\n"
-                  f"Enter '--z' to view credits\n"
+            print(f"Enter [c] to create a set\n"
+                  f"Enter [e] to edit a set\n"
+                  f"Enter [f] to view flashcards\n"
+                  f"Enter [i] to import a set\n"
+                  f"Enter [q] to start quiz\n"
+                  f"Enter [o] to view options\n"
+                  f"Enter [x] to exit\n"
+                  f"Enter [z] to view credits\n"
                   f"(Input 'x' in any menu to go back)")
             selection = input().strip().lower()
             match selection:
-                case '--c':
+                case 'c':
                     Write.create()
                     break
-                case '--e':
+                case 'e':
                     #raise NotImplementedError
                     folder = Read.view()
                     control = True
@@ -868,7 +872,7 @@ def menu() -> None:
                             continue
                         else:
                             break
-                case '--f':
+                case 'f':
                     # Control flow:
                     # parse(folder) evaluates folder.txt and returns a shuffled list;
                     # order(folder) evaluates flashcards.txt returns an ordered list;
@@ -882,7 +886,7 @@ def menu() -> None:
                         break
                     Read.flashcards(pairs, folder)
                     break
-                case '--i':
+                case 'i':
                     try:
                         txt, title = Write.create(new=True, extract=True)
                     except TypeError:
@@ -895,7 +899,7 @@ def menu() -> None:
                             break
                         if control: break
                         else: continue
-                case '--q':
+                case 'q':
                     folder = Read.view()
                     try:
                         pairs, folder = Read.parse(folder)
@@ -903,14 +907,14 @@ def menu() -> None:
                         break
                     Read.quiz(pairs, folder)
                     break
-                case '--o':
+                case 'o':
                     Options.menu()
                     break
-                case '--x' | 'x':
+                case 'x' | 'x':
                     print('Exiting...')
                     wait(1)
                     sys.exit()
-                case '--z':
+                case 'z':
                     Options.readme()
                     break
                 case _:
