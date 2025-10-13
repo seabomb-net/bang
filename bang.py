@@ -49,6 +49,7 @@ class Disk:
             Options.shuffle = config.getboolean('Options', 'shuffle', fallback=True)
             Options.result = config.getboolean('Options', 'result', fallback=True)
             Options.saveq = config.getboolean('Options', 'saveq', fallback=False)
+            Options.exact = config.getboolean('Options', 'exact', fallback=False)
             
 
     @staticmethod
@@ -59,7 +60,8 @@ class Disk:
             'reverse': str(Options.reverse),
             'shuffle': str(Options.shuffle),
             'result': str(Options.result),
-            'saveq': str(Options.saveq)
+            'saveq': str(Options.saveq),
+            'exact': str(Options.exact)
         }
         with open(INI_FILE, 'w') as file:
             config.write(file)
