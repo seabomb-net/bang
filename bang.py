@@ -365,7 +365,6 @@ class Read: # file-reading functions
         directory = SETS_DIR / folder
         txt = directory / "pairs.txt"
         flashcards = directory / "flashcards.txt"
-        
         if not pairs:
             while True:
                 selection = input(f'No pairs found. Delete set? (y/n): ').strip().lower()
@@ -383,59 +382,65 @@ class Read: # file-reading functions
                     continue
             return None
         
+    
+        pairs = sorted(pairs)
+        print(f"\nSelect pair #, *# to duplicate pair, or -# to delete pair, or 'c' to create pair: ")
+        print("#")
+        for idx, pair in enumerate(pairs, start=1):
+            print(f"{idx}. {str(pair)[:75]}{'...' if len(str(pair)) > 75 else ''}")
         while True:
-            pairs = sorted(pairs)
-            print(f"\nSelect a pair #, 'c' to create a pair, or -# to delete a pair: ")
-            for idx, pair in enumerate(pairs, start=1):
-                print(f"{idx}. {str(pair)[:75]}{'...' if len(str(pair)) > 75 else ''}")
-            while True:
-                selection = input('').strip().lower()
-                if selection == 'x':
-                    print('Returning...')
-                    return None
-                elif selection == 'c':
-                    Write.delete(flashcards)
-                    control=True
-                    return folder, control
+            pair=None
+            control=True
+            selection = input('').strip().lower()
+            if selection == 'x':
+                control=False
+                print('Returning...')
+                return pair, control
+            elif selection == 'c':
+                Write.delete(flashcards)
+                return folder, control
 
-                ######## PAIR DUPLICATION
-                ######## GOAL: RECURSION
-                elif selection.startswith('*'):##### in progress
-                    selection = selection.replace('*', '')
-                    selection = int(selection)##### try/except
-                    if 1 <= selection <= len(pairs):
-                        pair = pairs[selection-1]
-                        pairs.append(pair)
-                        with open(txt, 'a') as file:
-                            file.write(f"{pair}\n")
-                            print(f"Duplicated pair {selection}!")
-                            pair=None
-                            control=True
-                            return pair, control
+            ######## PAIR DUPLICATION
+            ######## GOAL: RECURSION
+            elif selection.startswith('*'):##### in progress
+                selection = selection.replace('*', '')
+                try:
+                    selection = int(selection)
+                except ValueError:
+                    print("Invalid selection, try again...")
+                    continue
+                if 1 <= selection <= len(pairs):
+                    pair = pairs[selection-1]
+                    pairs.append(pair)
+                    with open(txt, 'a') as file:
+                        file.write(f"{pair}\n")
+                        pair=None
+                        return pair, control
                 else:
-                    try:
-                        selection = int(selection)
-                        if 1 <= selection <= len(pairs): ## Typical set select
-                            return pairs[selection - 1], control
-                        elif -len(pairs) <= selection <= -1:
-                            del pairs[abs(selection) - 1]
-                            Write.delete(flashcards)
-                            with open(txt, 'w') as file:
-                                file.write(f"[{folder} : Pairs]\n")
-                                for pair in pairs:
-                                    file.write(f"{pair}\n")
-                            print(f'Deleted pair {abs(selection)}.')
-                            pair=None
-                            control=True
-                            return pair, control
-                        else:
-                            print('Invalid selection, try again...\n')
-                            wait(1)
-                            continue
-                    except ValueError:
+                    print("Invalid selection, try again...")
+                    continue
+            else:
+                try:
+                    selection = int(selection)
+                    if 1 <= selection <= len(pairs): ## Typical set select
+                        return pairs[selection - 1], control
+                    elif -len(pairs) <= selection <= -1:
+                        del pairs[abs(selection) - 1]
+                        Write.delete(flashcards)
+                        with open(txt, 'w') as file:
+                            file.write(f"[{folder} : Pairs]\n")
+                            for pair in pairs:
+                                file.write(f"{pair}\n")
+                        pair=None
+                        return pair, control
+                    else:
                         print('Invalid selection, try again...\n')
                         wait(1)
                         continue
+                except ValueError:
+                    print('Invalid selection, try again...\n')
+                    wait(1)
+                    continue
         
     @staticmethod
     def quiz(pairs: list, folder: str) -> None:
@@ -655,44 +660,48 @@ class Read: # file-reading functions
             Read.zero()
             return
         while True:
+            #control=False
             folders = sorted(folders)
             if folders:
-                print("\nSelect a set #, 'c' to create a set, *# to duplicate a set, or -# to delete a set: ")
+                print("\nSelect set #, *# to duplicate set, -# to delete set, or 'c' to create set: ")
+                print("#")
                 for idx, sets in enumerate(folders, start=1):
                     print(f"{idx} * {sets}")
-                selection = input('').strip().lower()
-                if selection == 'x':
-                    print('Returning...')
-                    return
-                elif selection == 'c':
-                    Write.create()
-                    return
-                elif selection.startswith('*'):
-                    selection = selection.replace('*', '')
-                    try:
-                        selection = int(selection)
+                while True:
+                    selection = input('').strip().lower()
+                    if selection == 'x':
+                        print('Returning...')
+                        return
+                    elif selection == 'c':
+                        Write.create()
+                        return
+                    elif selection.startswith('*'):
+                        selection = selection.replace('*', '')
+                        try:
+                            selection = int(selection)
+                        except ValueError:
+                            print('Invalid selection, try again...')
+                            continue
                         if 1 <= selection <= len(folders):
                             Disk.duplicate(folders[selection - 1])
                             folders = [folder.name for folder in SETS_DIR.iterdir()]
-                            continue
-                    except ValueError:
-                        print('Invalid selection, try again...')
-                        continue
-                else:
-                    try:
-                        selection = int(selection)
-                        if 1 <= selection <= len(folders):
-                            return folders[selection - 1] # the literal name of the txt
-                        elif -len(folders) <= selection <= -1:
-                            Write.dir_delete(folders[abs(selection) - 1], user=True)
-                            folders = [folder.name for folder in SETS_DIR.iterdir()]
-                            continue
-                        else:
+                            break
+                        
+                    else:
+                        try:
+                            selection = int(selection)
+                            if 1 <= selection <= len(folders):
+                                return folders[selection - 1] # the literal name of the txt
+                            elif -len(folders) <= selection <= -1:
+                                Write.dir_delete(folders[abs(selection) - 1], user=True)
+                                folders = [folder.name for folder in SETS_DIR.iterdir()]
+                                break
+                            else:
+                                print('Invalid selection, try again...')
+                                continue
+                        except ValueError:
                             print('Invalid selection, try again...')
                             continue
-                    except ValueError:
-                        print('Invalid selection, try again...')
-                        continue
             else:
                 Read.zero()
                 return
@@ -719,6 +728,50 @@ class Options:
     saveq = None # saves quiz results (txt)
     shuffle = None # shuffles pairs
     exact = None # exact answers only
+                        
+    @staticmethod
+    def menu() -> None:
+        """Display main settings."""
+        Disk.load()
+        while True:
+            while True:
+                print()
+                print(f'Enter text in parentheses to modify: \n'
+                      f"Reverse Pair Order = {'ON ' if Options.reverse else 'OFF'}       (--v)\n"
+                      f"Quiz Settings...               (--q)\n"
+                      f"Restore Defaults...            (--r)\n"
+                      f"Hard Reset...                  (--h)")
+                selection = input().strip().lower()
+                match selection:
+                    case '--v':
+                        Options.reverse = not Options.reverse
+                        Disk.save()
+                    case '--q':
+                        Options.quiz()
+                    case '--r':
+                        Options.reverse = False
+                        Options.shuffle = True
+                        Options.result = True
+                        Options.saveq = False
+                        Options.exact = False
+                        Disk.save()
+                        break
+                    case '--h':
+                        folders = [x for x in SETS_DIR.iterdir()]
+                        if folders:
+                            Write.dir_delete('.', user=True, reset=True)
+                        else:
+                            print('No sets to clear.')
+                            continue
+                        print()
+                        main()
+                        break
+                    case 'x':
+                        print('Returning...')
+                        return
+                    case _:
+                        print("Invalid selection, try again...")
+                        continue
 
     @staticmethod
     def quiz() -> None:
@@ -748,50 +801,6 @@ class Options:
                     case '--e':
                         Options.exact = not Options.exact
                         Disk.save()
-                        break
-                    case 'x':
-                        print('Returning...')
-                        return
-                    case _:
-                        print("Invalid selection, try again...")
-                        continue
-                        
-
-    @staticmethod
-    def menu() -> None:
-        """Display main settings."""
-        Disk.load()
-        while True:
-            while True:
-                print()
-                print(f'Enter text in parentheses to modify: \n'
-                      f"Reverse Pair Order = {'ON ' if Options.reverse else 'OFF'}       (--v)\n"
-                      f"Quiz Settings...               (--q)\n"
-                      f"Restore Defaults...            (--r)\n"
-                      f"Hard Reset...                  (--h)")
-                selection = input().strip().lower()
-                match selection:
-                    case '--v':
-                        Options.reverse = not Options.reverse
-                        Disk.save()
-                    case '--q':
-                        Options.quiz()
-                    case '--r':
-                        Options.reverse = False
-                        Options.shuffle = True
-                        Options.result = True
-                        Options.saveq = False
-                        Disk.save()
-                        break
-                    case '--h':
-                        folders = [x for x in SETS_DIR.iterdir()]
-                        if folders:
-                            Write.dir_delete('.', user=True, reset=True)
-                        else:
-                            print('No sets to clear.')
-                            continue
-                        print()
-                        main()
                         break
                     case 'x':
                         print('Returning...')
@@ -836,17 +845,16 @@ def menu() -> None:
                     Write.create()
                     break
                 case '--e':
-                    raise NotImplementedError("Edit function is a work in progress...")
+                    #raise NotImplementedError
                     folder = Read.view()
-                    try:
-                        pairs, folder = Read.parse(folder)
-                    except TypeError:
-                        break
                     control = True
                     while control:####
+                        try:
+                            pairs, folder = Read.parse(folder)
+                        except TypeError:
+                            break
                         pair, control = Read.edit(pairs, folder)
                         if not pair:
-                            print("if not pair:")
                             continue
                         if isinstance(pair, tuple):
                             print("if isinstance(pair, tuple):")
