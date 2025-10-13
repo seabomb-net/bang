@@ -5,6 +5,7 @@ from datetime import datetime                   # file management
 import os
 from pathlib import Path                        # file management
 from random import shuffle                      # shuffles pairs
+import re
 import shutil
 import sys                                      # file management
 from time import sleep as wait                  # exit
@@ -25,7 +26,8 @@ class Disk:
                 'reverse': 'False',
                 'shuffle': 'True',
                 'result': 'True',
-                'saveq': 'False'
+                'saveq': 'False',
+                'exact': 'False'
             }
             with open(INI_FILE, 'w') as file:
                 config.write(file)
@@ -73,7 +75,7 @@ class Disk:
             while dst.exists():
                 i += 1;
                 dst = SETS_DIR / f"{folder} (Copy {i})"
-            shutil.copytree(src=src, dst=dst)
+            shutil.copytree(src, dst)
         except (FileNotFoundError, FileExistsError) as e:
             print(f"An unexpected error occurred: {e}")
         except Exception as e:
@@ -85,7 +87,7 @@ class Write: # file-writing functions
         """Initialize directory and text file; called only by Write.create()."""
         directory = SETS_DIR / title
         directory.mkdir(parents=True, exist_ok=True)
-        txt = directory / f"{title}.txt"
+        txt = directory / "pairs.txt"
         with open(txt, 'a') as file:
             file.write(f"[{title} : Pairs]\n")
         return txt
@@ -116,7 +118,7 @@ class Write: # file-writing functions
     def create(pairs:list=None, new=True, extract=False, folder=None) -> None:
         """Wizard to add terms and definitions to set; store pairs as tuples."""
         folders = [folder.name for folder in SETS_DIR.iterdir()]
-        special = ['&', '"', '?', '<', '>', '#', '{', '}', '%', '~', '/', '.',
+        special = ['&', '"', '?', '<', '>', '#', '{', '}', '%', '~', '/', '.', # me
                    '\\', '*', ';', ':', "'", '|', '\t', '\n', '$', '!', '[', ']']
         if new:
             while True:
@@ -137,7 +139,7 @@ class Write: # file-writing functions
                     continue
             txt = Write.set_create(title) ##
         else:
-            txt = SETS_DIR / folder / f"{folder}.txt"
+            txt = SETS_DIR / folder / "pairs.txt"
         if extract:
             return txt, title
         terms = []
@@ -238,7 +240,6 @@ class Write: # file-writing functions
             elif selection == 'n' or selection == 'x':
                 del pairs
                 print()
-            #Write.dir_delete(title, user=False) original logic
                 return False
             else:
                 print('Invalid selection, try again...')
@@ -323,14 +324,14 @@ class Write: # file-writing functions
             blank = True
         if not blank:
             Write.delete(flashcards)
-        txt = SETS_DIR / folder / f"{folder}.txt"
+        txt = SETS_DIR / folder / "pairs.txt"
         for i, (term, definition) in enumerate(pairs):
             if term == pair[0] and definition == pair[1]:
                 del pairs[i]
                 break
         new_pair = (new_term, new_def)
         pairs.append(new_pair)
-        txt = SETS_DIR / folder / f"{folder}.txt"
+        txt = SETS_DIR / folder / "pairs.txt"
         if not blank:
             pass ### Write code that uses an import of shutil that deletes a FILE, not a DIRECTORY.
         with open(txt, 'w') as file:
@@ -342,53 +343,91 @@ class Write: # file-writing functions
 
 class Read: # file-reading functions
     @staticmethod
+    def correct(data: str, answer: str) -> bool:
+        data = data.lower() # user input
+        answer = answer.lower()
+        parentheses = answer.split('(')[1].split(')')[0] if "(" in answer and ")" in answer and not Options.exact else None
+        ### ^^^ if there are parentheses in the answer i.e. "water (liquid)", "liquid" is an acceptable input
+        not_parentheses = answer.split('(')[0].strip() if parentheses and not Options.exact else None
+        ### ^^^ "water" is also an acceptable input
+        if data in answer and len(data) >= (len(answer)*.9):
+            return True
+        elif parentheses:
+            if data in parentheses and len(data) >= (len(parentheses)*.9):
+                return True
+            elif data in not_parentheses and len(data) >= (len(not_parentheses)*.9):
+                return True
+        return False
+    
+    @staticmethod
     def edit(pairs: list, folder: str) -> tuple | str | None:
         """Select an individual pair within a set."""
         directory = SETS_DIR / folder
+        txt = directory / "pairs.txt"
         flashcards = directory / "flashcards.txt"
-        while True:
-            if not pairs:
-                while True:
-                    selection = input(f'No pairs found. Delete set? (y/n): ').strip().lower()
-                    if selection == 'y':
-                        del pairs
-                        Write.dir_delete(folder, user=False)
-                        print(f"Set '{folder}' was deleted.")
-                        return
-                    elif selection == 'n' or selection == 'x':
-                        del pairs
-                        print(f'The set is accessible inside the Sets/{folder}/ directory.')
-                        return
-                    else:
-                        print('Invalid selection, try again...')
-                        continue
-                return None
+        
+        if not pairs:
             while True:
-                print(f"\nSelect a pair #, 'c' to create a pair, or -# to delete a pair: ")
-                for idx, pair in enumerate(pairs, start=1):
-                    print(f"{idx}. {str(pair)[:75]}{'...' if len(str(pair)) > 75 else ''}")
+                selection = input(f'No pairs found. Delete set? (y/n): ').strip().lower()
+                if selection == 'y':
+                    del pairs
+                    Write.dir_delete(folder, user=False)
+                    print(f"Set '{folder}' was deleted.")
+                    return
+                elif selection == 'n' or selection == 'x':
+                    del pairs
+                    print(f'The set is accessible inside the Sets/{folder}/ directory.')
+                    return
+                else:
+                    print('Invalid selection, try again...')
+                    continue
+            return None
+        
+        while True:
+            pairs = sorted(pairs)
+            print(f"\nSelect a pair #, 'c' to create a pair, or -# to delete a pair: ")
+            for idx, pair in enumerate(pairs, start=1):
+                print(f"{idx}. {str(pair)[:75]}{'...' if len(str(pair)) > 75 else ''}")
+            while True:
                 selection = input('').strip().lower()
                 if selection == 'x':
                     print('Returning...')
                     return None
-                elif selection == 'c':##########
+                elif selection == 'c':
                     Write.delete(flashcards)
-                    return folder
+                    control=True
+                    return folder, control
+
+                ######## PAIR DUPLICATION
+                ######## GOAL: RECURSION
+                elif selection.startswith('*'):##### in progress
+                    selection = selection.replace('*', '')
+                    selection = int(selection)##### try/except
+                    if 1 <= selection <= len(pairs):
+                        pair = pairs[selection-1]
+                        pairs.append(pair)
+                        with open(txt, 'a') as file:
+                            file.write(f"{pair}\n")
+                            print(f"Duplicated pair {selection}!")
+                            pair=None
+                            control=True
+                            return pair, control
                 else:
                     try:
                         selection = int(selection)
-                        if 1 <= selection <= len(pairs):
-                            return pairs[selection - 1]
+                        if 1 <= selection <= len(pairs): ## Typical set select
+                            return pairs[selection - 1], control
                         elif -len(pairs) <= selection <= -1:
                             del pairs[abs(selection) - 1]
                             Write.delete(flashcards)
-                            txt = SETS_DIR / folder / f"{folder}.txt"
                             with open(txt, 'w') as file:
                                 file.write(f"[{folder} : Pairs]\n")
                                 for pair in pairs:
                                     file.write(f"{pair}\n")
                             print(f'Deleted pair {abs(selection)}.')
-                            break
+                            pair=None
+                            control=True
+                            return pair, control
                         else:
                             print('Invalid selection, try again...\n')
                             wait(1)
@@ -397,7 +436,7 @@ class Read: # file-reading functions
                         print('Invalid selection, try again...\n')
                         wait(1)
                         continue
-            
+        
     @staticmethod
     def quiz(pairs: list, folder: str) -> None:
         """Display pairs from selected set in a quiz format."""
@@ -425,13 +464,14 @@ class Read: # file-reading functions
                 while True:
                     selection = input(f'\n{pair[0]}: ').strip()
                     selection = selection.replace('self', f'{pair[0]}').lower()
+                    control = Read.correct(selection, pair[1])
                     if selection == 'x':
                         print('Returning...')
                         return
                     elif selection == 's':
                         skipped += 1
                         break
-                    elif selection in pair[1].lower() and len(selection.lower()) >= (len(pair[1].lower())*.9):
+                    elif control:
                         print(f'√ {pair[1]}')
                         questions_correct += 1
                         break
@@ -550,14 +590,14 @@ class Read: # file-reading functions
             else: break
     
     @staticmethod
-    def parse(folder: str) -> tuple[list, str]: # evaluates, shuffles pairs into a returned list (add shuffle bool?)
-        """Explain this one later."""
+    def parse(folder: str) -> tuple[list, str]:
+        """From pairs.txt, evaluate and shuffle pairs."""
         pairs: list = []
         try:
             directory = SETS_DIR / folder
         except TypeError: # NoneType
             return
-        txt = directory / f"{folder}.txt"
+        txt = directory / "pairs.txt"
         try:
             with open(txt) as file:
                 lines = file.readlines()[1:]
@@ -590,7 +630,7 @@ class Read: # file-reading functions
 
     @staticmethod
     def order(folder: str) -> list: # evaluates dict, returns the list by self-assessment *lowest first*
-        """Explain this one later."""
+        """From flashcards.txt, evaluate and shuffle pairs."""
         pairs = []
         try:
             directory = SETS_DIR / folder
@@ -605,7 +645,8 @@ class Read: # file-reading functions
         return pairs, folder
     
     @staticmethod
-    def view() -> str: # lists sets
+    def view() -> str:
+        """List directories in SETS_DIR."""
         folders = [folder.name for folder in SETS_DIR.iterdir()]
         if not SETS_DIR.exists():
             Read.zero()
@@ -616,7 +657,7 @@ class Read: # file-reading functions
         while True:
             folders = sorted(folders)
             if folders:
-                print("\nSelect a set #, 'c' to create a set, or -# to delete a set: ")
+                print("\nSelect a set #, 'c' to create a set, *# to duplicate a set, or -# to delete a set: ")
                 for idx, sets in enumerate(folders, start=1):
                     print(f"{idx} * {sets}")
                 selection = input('').strip().lower()
@@ -658,6 +699,7 @@ class Read: # file-reading functions
 
     @staticmethod     
     def zero() -> None:
+        """Handle edge cases for folder iteration errors."""
         while True:
             selection = input("\nNo sets found. Create a set? (y/n): ").strip().lower()
             if selection == 'y':
@@ -670,21 +712,25 @@ class Read: # file-reading functions
                 print('Invalid selection, try again...')
                 continue
 
-class Options: # settings, no __init__(self)
+class Options:
+    """Settings/Customization"""
     reverse = None # reverses pair order
     result = None # displays quiz results
     saveq = None # saves quiz results (txt)
     shuffle = None # shuffles pairs
+    exact = None # exact answers only
 
     @staticmethod
     def quiz() -> None:
+        """Display quiz-specific tweaks."""
         while True:
             while True:
                 print()
                 print(f'Enter text in parentheses to modify: \n'
                       f"Save Results = {'ON ' if Options.saveq else 'OFF'}             (--s)\n"
                       f"Show Results = {'ON ' if Options.result else 'OFF'}             (--q)\n"
-                      f"Shuffle Pairs = {'ON ' if Options.shuffle else 'OFF'}            (--f)")
+                      f"Shuffle Pairs = {'ON ' if Options.shuffle else 'OFF'}            (--f)\n"
+                      f"Exact Answers Only = {'ON ' if Options.exact else 'OFF'}       (--e)")
                 selection = input().strip().lower()
                 match selection:
                     case '--s':
@@ -699,6 +745,10 @@ class Options: # settings, no __init__(self)
                         Options.shuffle = not Options.shuffle
                         Disk.save()
                         break
+                    case '--e':
+                        Options.exact = not Options.exact
+                        Disk.save()
+                        break
                     case 'x':
                         print('Returning...')
                         return
@@ -709,6 +759,7 @@ class Options: # settings, no __init__(self)
 
     @staticmethod
     def menu() -> None:
+        """Display main settings."""
         Disk.load()
         while True:
             while True:
@@ -755,17 +806,18 @@ class Options: # settings, no __init__(self)
             print(file.read())
             input("Enter any key to return... ")
 
-def welcome() -> None: # ASCII art by https://patorjk.com/software/taag/
-    print\
-           (r"""██████╗  █████╗ ███╗   ██╗ ██████╗ ██╗
+def welcome() -> None:
+    """ASCII art from https://patorjk.com/software/taag/."""
+    print(r"""██████╗  █████╗ ███╗   ██╗ ██████╗ ██╗
 ██╔══██╗██╔══██╗████╗  ██║██╔════╝ ██║
 ██████╔╝███████║██╔██╗ ██║██║  ███╗██║
 ██╔══██╗██╔══██║██║╚██╗██║██║   ██║╚═╝
 ██████╔╝██║  ██║██║ ╚████║╚██████╔╝██╗
 ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═══╝ ╚═════╝ ╚═╝""")
-    print("[*] seabomb.net\t\t[*] 09.19.2025")
+    print("[*] seabomb.net\t       [*] 10.10.2025")
 
-def menu() -> None: # menu with pattern matching is more readable
+def menu() -> None:
+    """Display menu."""
     while True:
         while True:
             print()
@@ -784,14 +836,20 @@ def menu() -> None: # menu with pattern matching is more readable
                     Write.create()
                     break
                 case '--e':
+                    raise NotImplementedError("Edit function is a work in progress...")
                     folder = Read.view()
                     try:
                         pairs, folder = Read.parse(folder)
                     except TypeError:
                         break
-                    while True:
-                        pair = Read.edit(pairs, folder)
+                    control = True
+                    while control:####
+                        pair, control = Read.edit(pairs, folder)
+                        if not pair:
+                            print("if not pair:")
+                            continue
                         if isinstance(pair, tuple):
+                            print("if isinstance(pair, tuple):")
                             pairs = Write.edit(pair, pairs, folder)
                             continue
                         elif isinstance(pair, str):
